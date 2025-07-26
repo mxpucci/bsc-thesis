@@ -1,0 +1,85 @@
+\chapter{Appendix}
+
+% here there is an empty page...
+\section{Cuthill-McKee algorithm}\label{sec:cm}
+
+% step the algorithm counter and set the label
+\refstepcounter{algorithm}\label{alg:cm_refactored}%
+
+% full-width top rule
+\noindent\rule{\textwidth}{0.8pt}\par
+\vspace{-0.3cm}
+% caption, flush left, same line style as algorithm float
+\noindent\textbf{Algorithm \thealgorithm\ Cuthill--McKee Relabelling}\par
+\vspace{-0.5cm}
+% full-width thin separator rule
+\noindent\rule{\textwidth}{0.4pt}\par
+
+\begin{algorithmic}[1]
+  \Require A set of edges $E$, where each edge is a pair $(u,v)$.
+  \Ensure A mapping $\pi : V \to \{0,1,\dots,|V|-1\}$, where $V$ is the set of all vertices.
+
+  \State Initialize $G \leftarrow \emptyset$, $\pi \leftarrow \emptyset$, and $Nodes \leftarrow \emptyset$.
+  \For{each edge $(u,v)$ in $E$}
+    \State Append $v$ to $G[u]$ and $u$ to $G[v]$.
+    \State Insert $u$ and $v$ into $Nodes$.
+  \EndFor
+  \For{each vertex $v \in Nodes$}
+    \If{$v \notin G$}  
+      \State Set $G[v] \leftarrow \emptyset$.  
+    \EndIf
+  \EndFor
+  \For{each vertex $v \in Nodes$}
+    \State Compute degree $deg[v] \leftarrow |G[v]|$.
+  \EndFor
+
+  \State Initialize a priority queue $PQ$, ordering vertices by increasing $deg$ (with tie-breaking by vertex id).
+  \For{each vertex $v \in Nodes$}
+    \State Insert $v$ into $PQ$.
+  \EndFor
+
+  \State Initialize $Visited \leftarrow \emptyset$ and $rank \leftarrow 0$.
+  \While{$|Visited| < |Nodes|$}
+    \State Select a vertex $s \notin Visited$ from $PQ$ (or any unvisited vertex if $PQ$ is exhausted).
+    \State Initialize an empty queue $Q$.
+    \State Enqueue $s$ into $Q$ and mark $s$ as visited.
+    \While{$Q$ is not empty}
+      \State $curr \leftarrow \text{dequeue}(Q)$.
+      \State Assign label: $\pi[curr] \leftarrow rank$; $rank \leftarrow rank + 1$.
+      \State Let $N \leftarrow \{\, w \in G[curr] : w \notin Visited \,\}$.
+      \State Sort the list $N$ in increasing order of $deg$ (using vertex id to break ties).
+      \For{each vertex $w$ in sorted $N$}
+        \State Mark $w$ as visited.
+        \State Enqueue $w$ into $Q$.
+      \EndFor
+    \EndWhile
+  \EndWhile
+
+  \State \Return $\pi$.
+\end{algorithmic}
+
+
+\section{When bitpacking beats EF}\label{sec:prefixsum}
+
+We want to identify when the Elias–Fano (EF) encoding of a general, non-sorted integer sequence \( S = (S_1,\dots,S_n) \) becomes more compact than its simple bit-packed representation.
+
+A concise analysis, considering minor rounding artifacts due to ceiling operations, shows that bit-packing is at least as compact as EF precisely when:
+\[
+\lceil\log_2(M + 1)\rceil \leq 2 + \lceil\log_2(A + 1/n)\rceil,
+\]
+where \( M = \max S \) and \( A = (1/n)\sum_i S_i \) is the arithmetic mean.
+
+If we ignore these minor rounding issues—easily justified by assuming power-of-two conditions—the inequality simplifies neatly to:
+\[
+M \leq 4 \cdot A.
+\]
+
+This gives a straightforward and practical rule of thumb: the bit-packed representation is more compact exactly when the ratio between the largest value and the average satisfies:
+\[
+\frac{\max S}{\text{avg}\, S} \leq 4.
+\]
+
+Otherwise, the EF encoding of the prefix sums will be smaller and more compact.
+
+It is also worth noting that encoding a non-sorted integer sequence $\mathcal S$ via its prefix sum using EF is \UP{practically} space-equivalent to encoding $\mathcal{S}$ directly using the Golomb code \cite{golomb}, which has been proven to be optimal for sequences that follow a geometric distribution (i.e., $\mathbb P(s_i = x) = p( 1- p)^{x-1}$ for some $p \in [0, 1]$). Indeed, this is totally consistent with the above result that suggests using EF rather than bitpacking whenever the distribution of $\mathcal S$ is strongly skewed towards 0.
+

@@ -1,0 +1,39 @@
+\section{MAG: academic citation graph}
+
+The following graph is another academic graph, very similar to the previously described ``DBLP'' academic graph. We decided to include this dataset to enable a comparison between two datasets of different scales while maintaining a similar network skeleton. This dataset was entirely constructed from a snapshot of the Microsoft Academic Graph (MAG) project (now discontinued) \cite{wang2020macademic, sinha2015overview}. It is a graph of scientific articles that are connected with their authors and the venues (either journals or conferences) where they were presented. The processed graph was built, analogously to the Prime graph (the biological graph) and the Amazon dataset, using data provided by Stark \cite{stark2024} by extracting the files related to the Semi-structured Knowledge Base (SKB)\footnote{\url{https://stark.stanford.edu/dataset_mag.html}}.
+
+The compressed graph, contained in a ZIP archive, occupies 389 MB and consists of approximately 1.9 million nodes and 19.9 million edges. When uncompressed, the node and edge files occupy 864 MB and 852 MB, respectively.\footnote{The processed dataset can be downloaded from \url{https://drive.google.com/file/d/1mzBjgFJZs7ZctAQzkr9-S8Wkwc4WjEXZ/view?usp=sharing}.}
+
+\subsection*{Node Properties}
+
+\begin{itemize}
+    \item \emph{Id:} Unique identifier for each node.
+    \item \emph{Type:} Indicates whether the node represents an author, institution, field of study, or paper.
+    \item \emph{mag\_id:} Identifier of the node within the Microsoft Academic Graph (MAG).
+    \item \emph{name:} For an author, this field contains the first and last name; for an institution, it contains the institution's name; for a field of study, it contains a descriptive string; and for a paper, it contains the paper's title.
+    \item \emph{PaperCount:} Applicable to all nodes except those of type ``paper''. This field contains the number of relevant papers associated with the author, topic, or institution.
+    \item \emph{CitationCount:} Similar to PaperCount, this field refers to the total number of citations that point to that node (e.g., Author X has received a total of Y citations).
+    \item \emph{DocType:} For paper nodes, this indicates whether the paper was published in a journal or presented at a conference.
+    \item \emph{Year:} For paper nodes, this specifies the publication year.
+    \item \emph{Date:} For paper nodes, this specifies the exact publication date.
+    \item \emph{Publisher:} For paper nodes, this field indicates the publisher of the journal.
+    \item \emph{JournalId:} For paper nodes published in journals, this serves as the journal's identifier.
+    \item \emph{ConferenceSeriesId:} For paper nodes presented at conferences, this field identifies the conference series.
+    \item \emph{ConferenceInstanceId:} For paper nodes presented at conferences, this field identifies the specific annual instance of the conference.
+    \item \emph{PaperCitationCount:} For paper nodes, this field specifies the number of citations received by the paper.
+    \item \emph{Abstract:} For paper nodes, this field contains the abstract of the article.
+\end{itemize}
+
+\subsection*{Edge Properties}
+
+\begin{itemize}
+    \item \emph{source:} Identifier of the source node.
+    \item \emph{target:} Identifier of the target node.
+    \item \emph{type:} The types of relationships include:
+    \begin{itemize}
+        \item author\_affiliated\_with\_institution,
+        \item paper\_cites\_paper,
+        \item paper\_has\_topic\_field\_of\_study,
+        \item author\_writes\_paper.
+    \end{itemize}
+\end{itemize}

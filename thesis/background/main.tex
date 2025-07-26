@@ -1,0 +1,170 @@
+\chapter{Background}
+
+In this chapter, we present the tools, concepts, and the foundational knowledge necessary to understand the context and motivations for the work described in this thesis.
+
+\section{Graph relabelling}\label{sec:graphrelabelling}
+
+\emph{Graph relabelling} is a fundamental problem in Graph Theory. It consists of finding a bijection $\pi: V \to V$ that "relabels" the nodes and edges of a given graph $G = (V, E)$ either directed or undirected.
+
+\subsection{Graph bandwidth}
+
+The \emph{bandwidth} of \(G\) according to \(\pi\) is defined as the maximum difference between the labels of the endpoints of any edge. In other words, it is given by
+
+\[
+\mathrm{Bandwidth}(G, \pi) = \max_{(u, v) \in E} |\pi(u) - \pi(v)|.
+\]
+
+Furthermore, the bandwidth of the graph \(G\) itself is defined as the minimum bandwidth achievable among all possible labellings \(\pi\):
+
+\[
+\mathrm{Bandwidth}(G) = \min_{\pi} \max_{(u, v) \in E} |\pi(u) - \pi(v)|.
+\]
+
+This problem of finding a relabelling that minimizes the maximum label difference over all edges is known as the graph bandwidth problem, and it is a well-known NP-hard problem \cite{bandwidth_np_complete} in combinatorial optimization and graph theory. Moreover, even finding a relabelling that approximates the minimum bandwidth to within any guaranteed constant factor is NP-hard.
+
+\subsection{Cuthill-McKee reordering}
+A commonly used heuristic to tackle the bandwidth minimization problem in practice is the \emph{Cuthill-McKee algorithm} \cite{cuthill}. This algorithm is designed to reduce the bandwidth of the matrix associated with a sparse graph. Although this method does not guarantee that the bandwidth is minimized to the optimal value, it often produces a considerably reduced bandwidth in many practical applications, especially where the graph represents a sparse matrix in numerical simulations or finite element methods.
+
+While Appendix~\ref{sec:cm} provides the formal pseudocode, we briefly summarize its key ideas. The algorithm is designed for undirected graphs \footnote{ It has also been adapted for directed graphs; see \cite{unsymmetricCM}.}, and  begins by constructing a symmetric version of the graph and calculating the degree of each vertex. It then selects a suitable starting vertex based on a global priority determined by vertex degrees.
+
+A breadth-first search (BFS) is then initiated from the selected vertex. During the traversal, each vertex is assigned a new label sequentially. Before enqueueing, the unvisited neighbors of the current vertex are sorted in ascending order of degree, ensuring that vertices with lower connectivity are processed first.
+
+If the graph is disconnected, the algorithm iteratively selects an unvisited vertex using the global degree-based priority and performs BFS until all vertices have been labelled.
+
+
+\section{Compact data structures}
+
+\subsection{Bit-packing}
+
+Let $\mathcal S = s_1, \dots, s_n$ be a sequence of non-negative integers. A usual representation of $\mathcal S$ (e.g., C++ \verb^std::vector^) would allocate either 32 or 64 bits for each $s_i$. This is often inefficient when the actual values that the integers can take are much smaller, as many of the allocated bits remain unused.
+
+\emph{Bit-packing} addresses this inefficiency by storing the integers using exactly the number of bits required to represent their maximum value. To achieve this, we explicitly store the number of bits required to represent the largest integer in the sequence.  This bit width is then used to compactly encode all the integers we intend to store, eliminating redundant leading zeros.
+
+In this thesis, we make use of the \verb|sdsl::int_vector| data structure from the Succinct Data Structure Library (SDSL) \cite{sdsl}  to enable bit-packed storage of integer sequences. This data structure allows specifying the bit-width \( b \) used to store each element, and supports efficient access, update, and serialization of the packed values. Clearly, such $b$ should be such that each number $s_i$ can be represented using $b$ bits (i.e., $b \ge \lceil \log_2 (\max_i s_i + 1)\rceil $).
+
+\subsection{Rank-Select Bit Vectors}
+
+A \emph{rank-select bit vector} \cite[Section~15.1]{PearlsAE} is a data structure used to index static binary sequences while supporting some efficient queries, specified below. Given a $0$-indexed binary sequence $\mathcal B$ of length $n$, it supports the following two fundamental operations:
+
+\begin{itemize}
+  \item $\mathrm{rank}_{\mathcal B}(i)$, defined as the number of ones in the first $i$ elements of $\mathcal B$ (i.e., $\mathrm{rank}_\mathcal B(i) = \sum_{j = 0}^{i - 1} \mathcal B[j]$).
+  \item $\mathrm{select}_\mathcal{B}^1(i)$ returns the position of the $i$-th occurrence of $1$ in $\mathcal B$.
+  \item $\mathrm{select}_{\mathcal B}^0(i)$ returns the position of the $i$-th occurrence of $0$ in $\mathcal B$.
+\end{itemize}
+
+Using auxiliary data structures, both operations can be supported in constant time using $o(n)$ additional bits of space on top of the $n$ bits required to store the original bit vector.
+
+
+
+\subsection{Elias-Fano compressed indexing}
+Elias-Fano (EF) compressed indexing \cite{EFVigna} is a compressed data structure that provides an efficient and compact representation of monotonically non-decreasing integer sequences while allowing constant-time operations.
+
+Given a non-decreasing sequence of non-negative integers \( \mathcal S = s_0 \le \dots \le s_{n - 1} \), we define \( u = s_{n - 1} + 1 \) and initially encode \( \mathcal S \) using \(\lceil \log_2 u \rceil\) bits. The \(\lceil \log_2(u/n) \rceil \) least significant bits of each integer are stored consecutively in a (bit-packed) vector \( \mathcal L \). The remaining higher-order bits are represented by encoding the counts of occurrences in unary form within another bit-vector \( \mathcal H \). Constant time retrieval of the $i$-th element is then achieved by equipping $\mathcal H$ with select and rank support.
+
+The space complexity of Elias-Fano compressed indexing can be formally stated as follows:
+
+\begin{theorem}\label{thm:ef_space}
+The total storage space required by this compressed structure can be estimated as \( n (2 + \lceil \log_2(u/n) \rceil) + o(n)\) bits.     
+\end{theorem}
+
+Additionally, it can be shown that this space bound is almost optimal if $\mathcal S$ is drawn uniformly from $[0, u)$. In such a case, indeed, $\log_2 (u/n)$ represents the logarithm of the average gap between two elements $s_i$ and $s_{i + 1}$.
+
+One may think that, given that every sequence $\mathcal S$ can be converted into a non-decreasing one through its prefix sum, EF encoding can be applied to every sequence, regardless of its monotonicity. This is obviously true, but encoding non-monotonic sequences with EF might be inconvenient space-wise. 
+As a rule of thumb, EF encoding of a non-monotonic sequence $\mathcal S$ is space-convenient compared to its bit-packed representation whenever $\max S \ge 4 \mathrm{avg}\ S$. We provide the argument of this statement in Section~\ref{sec:prefixsum}.
+
+
+\subsection{Representing (inverse) permutations}\label{sec:invperm}
+A permutation $\pi$ of $[0, n - 1]$ is a sequence where each value $0 \le v \le n - 1$ appears exactly once. 
+
+Given the bijective nature of $\pi$, we are interested in supporting both $\pi(i)$ and $\pi^{-1}(i)$ primitives efficiently without storing $\pi^-1$ explicitly.
+
+A first observation is that $\pi$ can be represented using $n \lceil \log_2 n \rceil$ bits thanks to bit-packing. Implementing $\pi(i)$ is straightforward, while $\pi^{-1}(i)$ can be computed by calling $i_0 = i$ and computing $i_k = \pi(i_{k - 1}) = \pi^k(i)$ until $i_k = i$.
+
+This procedure has worst-case $O(n)$ time complexity, but it can be generalized to guarantee $O(t)$ time complexity for any $t \ge 1$ with the draw-back of using $n ( 1 + \frac{2}{t + 1} \lceil \log_2 n \rceil) + o(n)$ additional bits \cite[Section~5.1]{CompactDS}.
+
+Specifically, every $t$ steps along permutation cycles of length $l > t$ we store the shortcut $i \to \pi^{-t}(i)$. Thus, computing \(\pi^{-1}(i)\) under this generalized scheme now requires taking the first shortcut we encounter while traversing $\pi$ with the usual scheme.
+
+\subsection{FM-Index}
+The Suffix Array (SA) of a given text $\mathcal T$ of length $n$ is an array of integers specifying the starting positions of all suffixes of $\mathcal T$ sorted in lexicographical order. This structure enables efficient pattern matching. For instance, finding all occurrences of a pattern $P$ of length $m$ can be achieved by binary searching the SA, typically requiring $O(m \log_2 n)$ time to identify the range of suffixes prefixed by $P$, followed by constant time retrieval for each occurrence's starting position \cite[Section~10.2]{PearlsAE}.
+
+The SDSL library \cite{sdsl} offers a compressed implementation of SA (CSA) based on Huffman-shaped Wavelet-Trees \cite{wt} constructed over the Burrows-Wheeler Transform (BWT) \cite{BWT} of the input text, whose design is remarkably inspired by the FM-Index \cite{FMIndex}.
+
+This specific implementation uses explicit sampling of the Suffix Array and Inverse Suffix Array (respectively,  $t_{dens}$ and $t_{inv\_dens}$) to balance space and query time.
+The primitives offered are the same offered by FM-Indexes, namely:
+\begin{itemize}
+    \item $\mathrm{count}_{\mathcal T}(P)$, which returns the number of occurrences of a pattern $P$ within the text $\mathcal T$. It has $O(m \log_2 \sigma )$ time complexity where $\sigma$ is the alphabet size.
+    \item $\mathrm{locate}_{\mathcal T}(P)$, which returns the positions of all the occurrences of the pattern $P$ within $\mathcal T$. In addition to the work of $\mathrm{count}(P)$, each reported occurrence requires "walking" from the wavelet structure back to a sampled SA entry; this part is governed by the sampling interval $t_{sample}$.
+    \item $\mathrm{extract}_{\mathcal T}(P, \mathit{start}, \mathit{end})$, which retrieves the text substring $T[\mathit{start}, \mathit{end}]$.  The time complexity grows with the substring length and again depends on how frequently we store samples of the inverse SA (parameter $t_{inv\_sample}$).
+\end{itemize}
+
+At a high level, the total space is close to the zero‑order entropy of $\mathcal T$ (i.e $n H_0(L)$ bits, where $L$ is the last column of the BWT of $\mathcal T$), plus a modest overhead for the wavelet tree, plus the bits needed for the SA and inverse‑SA samples.
+
+
+
+\section{On graph compression}\label{sec:graph-compression}
+In this section, we review techniques used to compactly represent either general graphs or LPGs. Given the scope of this thesis, we narrow our focus to representations that offer fast decompression speed.
+
+\subsection{Compressed Sparse Rows representation}\label{sec:csr}
+A common approach when representing sparse graphs (either directed or undirected) is to use the \emph{Compressed Sparse Row} (CSR) format. Given a graph \( G = (V, E) \) and calling $n = |V|$ and $m = |E|$, its CSR representation is given by $(\mathcal{A}, \mathcal{O})$ where:
+\begin{itemize}
+    \item $\mathcal A$ is an array of size $m$ containing the concatenated neighbor lists of each vertex
+    \item $\mathcal O$ is an array of $n + 1$ offsets, where $\mathcal{O}[i]$ is the sum of the out-degree of the first $i - 1$ nodes for any $1 \le i \le  m$ and $0$ for $i = 0$.
+\end{itemize}
+Hence, the neighbors of the $i$-th vertex can be found in the range $[\mathcal{O}[i] : \mathcal{O}[i + 1]]$ within $\mathcal{A}$.
+
+This representation is clearly equivalent to the corresponding adjacency lists, but it offers the advantage of storing pointers to lists only when a node has outgoing edges. More importantly, it eliminates the overhead of maintaining a list (and therefore its header) for each neighborhood.
+
+Usually, the CSR framework is implemented by representing $\mathcal A$ and $\mathcal O$ as standard arrays (e.g., using C++ \verb^std::vector^). However, we can easily observe that $\mathcal{A}$ and $\mathcal O$ can be easily compressed. 
+Indeed,  $\mathcal A$  can be represented with a bit-packed array since it is made up of vertices' ids, which are within the range $[0, n - 1]$. It is also easy to observe that $\mathcal O$ is a non-decreasing sequence, hence can be coded using the EF encoding. We thus conclude the following theorem.
+
+\begin{theorem}
+The CSR representation of a graph $G = (V, E)$ with $n$ nodes and $m$ edges, takes 
+\begin{equation*}
+    m \lceil \log_2 n \rceil + n \left(2 + \left\lceil \log_2 \frac{m + 1}{n} \right\rceil \right) + o(n)
+\end{equation*}
+bits.
+\end{theorem}
+
+For the rest of this thesis, with CSR we will refer to this implementation that employs bit-packing and EF.
+
+
+\subsection{LogGraph}
+Besta et al.~\cite{loggraph} recently proposed a compressed representation of graph adjacency lists with low-overhead decompression.
+
+The core idea behind \emph{LogGraph} is to sort the adjacency list of the nodes before concatenating them when forming $\mathcal{A}$ and exploiting this ordering to store the gaps. Such gaps are stored used Varint encoding \footnote{See \url{https://protobuf.dev/programming-guides/encoding/}}, a variable-length encoding that uses fewer bits for smaller numerical values. In this variant, however, $\mathcal{O}[i]$ is not the sum of the out-degree of the $i - 1$ nodes anymore but the bit position where the $i$-th adjacency list begins in $\mathcal{A}$.
+
+This definition of $\mathcal{O}$, which comes with a bigger max-value, obviously has an intrinsic overhead. Moreover, gap encoding alone does not guarantee significant compression improvements without further strategies.
+
+To boost compression, LogGraph extensively uses various vertex relabelling techniques. Among the approaches proposed, their Degree-Minimizing (DM) schemes relabel nodes according to their degrees, such that vertices with higher degrees receive a lower ID value. The authors strongly position the DMd variant (Degree-Minimizing with differences encoded, often using a Varint-like approach) as offering the best space/performance tradeoff among the techniques they developed for logarithmizing the adjacency structure $\mathcal A$. They also claim that DMd achieves compression ratios comparable to WebGraph~\cite{webgraph}.
+
+\subsection{CGraphIndex}
+
+Huo et al.~\cite{CGraphIndex} proposed a self-index for knowledge graphs, supporting efficient queries.
+
+Similarly to LogGraph, \emph{CGraphIndex} represents the topology of $G$ via sorted adjacency lists. The core topological structure, \texttt{gStruct} , consists of:
+\begin{itemize}
+    \item $\mathcal{S}$ is a hybrid-encoded sequence obtained by concatenating, for each vertex $u$ in increasing order, either its Elias-Fano (EF) encoding or a fixed-length (F) code of its sorted adjacency list (or its gap sequence for F code), whichever is shorter. When using Elias-Fano encoding, the cost is approximately $\lfloor \log_2 (n / \mathrm{outdegree}(u)) \rfloor + 3$ bits per element on average.
+
+    \item $\mathcal{M}$ is a bit-array of length $|V|$ marking, for each $u$, which encoding method (EF or F) was used for its adjacency list $Adj_u$ ; this dictates how to decode $Adj_u$ from $\mathcal{S}$ on the fly.
+
+    \item $\mathcal{B}_1$ is a bit-array of length $|\mathcal{S}|$ with a $1$ at each position where a new vertex's encoded adjacency list begins in $\mathcal{S}$ (and $0$ elsewhere). Combined with $\mathcal{B}_3$, $\mathrm{select}_1(\mathcal{B}_1, \mathrm{rank}_1(\mathcal{B}_3, u))$ helps locate the start of vertex $u$'s block in $\mathcal{S}$ .
+
+    \item $\mathcal{B}_2$ is a bit-array of length $|E|$ with a $1$ at each index corresponding to the start of a vertex's adjacency list in the conceptual global edge sequence $\mathrm{Adj}$ . This helps determine the number of neighbours (degree) for a vertex $u$ using ranks on $\mathcal{B}_3$ .
+
+    \item $\mathcal{B}_3$ is a bit-array of length $|V|$ where $\mathcal{B}_3[u]=1$ if $Adj_u$ is non-empty, and $0$ otherwise . It is used to map a vertex $u$ to its ordinal among vertices with non-empty lists for indexing into $\mathcal{B}_1$ and $\mathcal{B}_2$.
+\end{itemize}
+
+An entirely analogous set of arrays $(\mathcal{S}', \mathcal{M}', \mathcal{B}_1', \mathcal{B}_2', \mathcal{B}_3')$ (termed \texttt{gInStruct}) is built over the incoming adjacency lists to support in-neighbor queries in the same way .
+
+The bit-arrays $\mathcal{B}_1, \mathcal{B}_2, \mathcal{B}_3$ are stored in compressed form using RRR‑style \cite{RRRbitvector} indexable dictionaries, which for a bit-vector of length $l$ with $k$ set bits occupy $\log_2 \binom{l}{k} + o(k)$ bits . The method array $\mathcal{M}$ is stored as a plain bit-array using $|V|$ bits .
+
+Contrarily to LogGraph, \emph{CGraphIndex} assigns a numeric vertex identifier (\(\mathit{Vid}\)) based on the vertex label and its original ID within that label's class: first, a minimal perfect hash $\mathrm{MPhash}(x,\mathrm{ID})$ ranks nodes within each label class $x$; then, a class offset $H[h(x)]$ is added, so the final $\mathit{Vid} = \mathrm{MPhash}(x,\mathrm{ID}) + H[h(x)]$ . This gives a dense, label-stratified numbering in $[1 \ldots n]$, computable in $O(1)$ time using $O(n)$ bits. The paper uses MPhash on the vertex ID within its class.
+
+Finally, vertex and edge properties are then handled as follows:
+\begin{itemize}
+    \item \emph{Vertex properties:} All vertex property strings are concatenated into a single text $\mathcal{T}_V$, indexed with a self-index $\mathcal{V}\mathit{Index}$ (e.g., FM-index style) and a bit-vector $\mathcal{V}\mathit{B}$ . Locating and retrieving the property of a vertex $\mathit{Vid}$ reduces to one $\mathit{select}_1$ on $\mathcal{V}\mathit{B}$ followed by a substring extract from $\mathcal{V}\mathit{Index}$ .
+    
+    \item \emph{Edge residual properties:} All residual edge property strings are concatenated into $\mathcal{T}_R$, indexed with $\mathcal{R}\mathit{Index}$ and a bit-vector $\mathcal{R}\mathit{B}$ , supporting retrieval analogously via operations like $\mathit{getPosR}$ and $\mathit{ExtractR}$ .
+    
+    \item \emph{Edge relation types:} The (constant-sized ) set of distinct edge relation labels is encoded in a compact array $\mathcal{E}_r$, where each edge's relation type maps to a fixed-length codeword based on its $\mathit{Eid}$ . Thus, retrieving the relation property, $\mathit{eRelation}(\mathit{Eid})$, is an $O(1)$ lookup .
+\end{itemize}

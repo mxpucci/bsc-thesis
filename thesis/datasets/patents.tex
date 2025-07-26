@@ -1,0 +1,43 @@
+\section{Patents: american patent citation graph}
+This section describes part of a project conducted by the National Bureau of Economic Research (NBER) \cite{patentsource} on American patent data from 1976 to 2006. The project encompasses details on over 3 million patents, including more than 16 million citations among them\footnote{The raw data is available at \url{https://sites.google.com/site/patentdataproject/Home/downloads/patn-data-description?authuser=0}}.
+
+In this graph, the nodes represent either patents or assignees. Patent nodes are interconnected by edges of type \texttt{CITES}. Additionally, corresponding relationships link patents to their assignees—entities, companies, or individuals.\footnote{The processed dataset can be downloaded from \url{https://drive.google.com/file/d/1mCov-nqQC0BE-gGBf7NXq4YRRG9PEnDh/view?usp=sharing}.}
+
+The entire dataset occupies 233 MB of storage when compressed in a ZIP archive, containing approximately 3.5 million nodes and 26.4 million edges. In its uncompressed form, the nodes file and the edges file require approximately 338 MB and 905 MB, respectively.
+
+All information about categories and subcategories is based on the classification provided by the Commerce Control List (CCL).
+
+\subsection*{Node Properties}
+(Almost all properties are set only for nodes of type \texttt{patent} unless explicitly stated otherwise.)
+\begin{itemize}
+    \item \emph{id}: Unique identifier for each node.
+    \item \emph{type}: Indicates whether the node is a \texttt{Patent} or an \texttt{Assignee}.
+    \item \emph{name}: (For nodes of type \texttt{Assignee}) The name of the assignee.
+    \item \emph{Cat}: Technological category according to the CCL, ranging from 1 to 6.
+    \item \emph{Cclass}: United States Patent Classification (USPC) code that categorizes the patent.
+    \item \emph{Status}: Authorization status of the patent (where \texttt{m} indicates missing and \texttt{w} indicates withdrawn).
+    \item \emph{Subcat}: CCL-related subcategory (values between 11 and 69).
+    \item \emph{Subclass}: Subclass for the given USPC class (as defined by the CCL).
+    \item \emph{subclass1}: Similar to \texttt{Subclass}, but referring to the alpha-subclasses.
+    \item \emph{icl}: International classification.
+    \item \emph{icl\_class}: A 4-character code specifying the class according to the International Patent Classification (IPC).
+    \item \emph{icl\_maingroup}: The main group containing the IPC class.
+    \item \emph{Gday}: Day on which the patent was granted.
+    \item \emph{Gmonth}: Month in which the patent was granted.
+    \item \emph{Gyear}: Year in which the patent was granted.
+    \item \emph{Appyear}: Year in which the patent was submitted.
+    \item \emph{Nclaims}: Number of claims in the patent.
+    \item \emph{Iclnum}: Sequence number associated with the IPC class.
+    \item \emph{Nclass}: A three-digit number specifying the patent class according to the CCL.
+    \item \emph{term\_extension}: Number of days the patent term was extended.
+    \item \emph{allcites}: Total number of citations received by the patent up to 2006. Note that this number is imprecise for patents with submission years between 2006 and 2009; a secondary field, \texttt{hjtwt}, is provided to correct this inaccuracy.
+    \item \emph{hjtwt}: Correction value for \texttt{allcites}.
+    \item \emph{uspto\_assignee}: (For nodes of type \texttt{Assignee}) The original identification number of the assignee as provided by the United States Patent and Trademark Office (USPTO).
+\end{itemize}
+
+\subsection*{Edge Properties}
+\begin{itemize}
+    \item \emph{source}: The source node.
+    \item \emph{target}: The destination node.
+    \item \emph{type}: Indicates the type of relationship, e.g., \texttt{ASSIGNED\_TO} or \texttt{CITES}.
+\end{itemize}

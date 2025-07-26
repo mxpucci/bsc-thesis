@@ -1,0 +1,33 @@
+\section{Amazon: product recommendation graph}
+
+The dataset consists of a product recommendation graph for an online catalog (Amazon) (3). It comprises a list of products along with associated metadata, review details, and relationships such as \textit{also purchased} and \textit{also viewed}. This dataset
+\footnote{The processed dataset can be downloaded from \url{https://drive.google.com/file/d/13A9DCImmOZPFI6TyHZRUpaZcMQb3Rq0V/view?usp=sharing}.}was extracted from the SKB (Semi-structured Knowledge Base) of the Stark project \cite{stark2024}, which provides three SKBs, one of which is the Amazon catalogue available at \url{https://stark.stanford.edu/dataset_amazon.html}.
+
+The graph is archived in a ZIP file with a total size of 208 MB and contains slightly fewer than 1 million nodes and 4 million edges. In its uncompressed state, the nodes and edges files require 663 MB and 94.9 MB, respectively.
+
+Nodes represent either products or categories. The edges connect products to their respective categories and further link products together based on the following user interactions:
+\begin{itemize}
+    \item Users who have viewed both product pages.
+    \item Users who have purchased both products.
+\end{itemize}
+
+\paragraph{Node Properties (all defined for products, with only a subset applicable to categories):}
+\begin{itemize}
+    \item \emph{ID}: Unique identifier.
+    \item \emph{Type}: Specifies whether the node represents a product or a category.
+    \item \emph{Asin}: An alternative identifier, valid only for products.
+    \item \emph{Title}: The name of the product in the Amazon catalogue, or the name of the category if the node is of type category.
+    \item \emph{Review\_score}: The average review rating available on the website (a float ranging from 1 to 5).
+    \item \emph{Price}: The product price in dollars, or 0 if unspecified.
+    \item \emph{Brand}: The product's brand.
+    \item \emph{Feature}: A list of tags associated with the product on the Amazon catalogue.
+    \item \emph{Rank}: A string that specifies the ranking of the product within its corresponding category.
+    \item \emph{Description}: A text description providing additional details about the product.
+\end{itemize}
+
+\paragraph{Edge Properties:}
+\begin{itemize}
+    \item \emph{Source}: The identifier of the source node.
+    \item \emph{Type}: The type of relationship (can be ALSO\_VIEWED, ALSO\_BOUGHT, HAS\_CATEGORY).
+    \item \emph{Target}: The identifier of the target node.
+\end{itemize}

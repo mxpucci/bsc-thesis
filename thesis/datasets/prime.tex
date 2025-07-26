@@ -1,0 +1,28 @@
+\section{Prime: graph of biological entities}
+\label{sec:prime-kg}
+
+Stark-Prime is a biological dataset that integrates various types of biological entities, such as genes, proteins, diseases, and medications. The dataset compiles information extracted from scientific publications, non-standard repositories, and established biological ontologies \cite{chandak2023building}. Although the number of nodes is relatively low, the graph exhibits high density, as indicated by an elevated average node degree. This dataset is part of the Stanford Stark SKB project\footnote{\url{https://stark.stanford.edu/dataset_prime.html}} \cite{stark2024}.
+
+The processed dataset is available as two files, \texttt{nodes.tsv} and \texttt{edges.tsv}, which contain all the nodes and edges, respectively. \footnote{The processed dataset can be downloaded from \url{https://drive.google.com/file/d/1nw4e5ZWXNXx7NKBbCjrsH-SdvsuGpztW/view?usp=sharing}.}
+
+The graph comprises approximately 130,000 nodes and 4 million \emph{undirected} edges. When compressed in the ZIP file, the total size is 28 MB. In uncompressed form, the \texttt{nodes.tsv} file requires around 7.6 MB, while the \texttt{edges.tsv} file requires approximately 140 MB.
+
+\subsection*{Node Properties}
+The nodes in the graph include the following attributes:
+\begin{itemize}
+    \item \emph{ID:} A unique integer identifier.
+    \item \emph{Type:} The classification of the biological entity (e.g., gene/protein, disease).
+    \item \emph{Name:} The designated name of the entity, as determined by the corresponding reference ontology.
+    \item \emph{Source:} The reference ontology (e.g., \texttt{NCBI} stands for National Center for Biotechnology Information).
+    \item \emph{OntoID:} Identifier of this biological entity in the reference ontology, specified in the
+\texttt{Source} column.
+\end{itemize}
+
+\subsection*{Edge Properties}
+Each edge in the graph is characterized by the following properties:
+\begin{itemize}
+    \item \emph{Source ID:} The identifier of the source node, corresponding to the \texttt{ID} column in the nodes file.
+    \item \emph{Target ID:} The identifier of the target node, also referring to the \texttt{ID} column in the nodes file.
+    \item \emph{Type:} A short abbreviation denoting the type of interaction between the two entities (e.g., \texttt{PPI} for protein-protein interaction).
+    \item \emph{Relation Type:} A more descriptive version of the string provided in the \texttt{Type} field.
+\end{itemize}

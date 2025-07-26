@@ -1,0 +1,193 @@
+\chapter{Representing graph properties}\label{chap:properties}
+
+In this chapter, we describe how to store node and edge properties in order to offer efficient lookups, while still aiming at compactness. We focus on node properties, as the edge properties can be stored exactly in the same way.
+
+\subsection*{Properties types}
+We aim to support properties of the following types: integer, date, double, enum, and string. The first 4 are \emph{fixed-size} types, and we employ different strategies to store them. The fifth one is a \emph{variable-size} type, and we use a more flexible encoding scheme to account for its varying length and content.
+
+We formalize this classification, saying that the set of properties $K$ is a partition of $K^\text{int}, K^\text{date}, K^\text{double}, K^\text{enum}, K^\text{string}$. Without loss of generality, we also index $K$  with a total ordering such that \[
+\forall i, j, k, l, m \quad
+\begin{cases}
+K_i \in K^{\text{int}} \\
+K_j \in K^{\text{date}} \\
+K_k \in K^{\text{double}} \\
+K_l \in K^{\text{enum}} \\
+K_m \in K^{\text{string}} \\
+\end{cases}
+\quad \Rightarrow \quad i < j < k < l < m
+\]
+
+
+    
+
+This partition also applies to $\mathrm p_N: N \times K \to W$, which is defined as follows.
+\begin{definition}
+Given the partition \( K = K^{\text{int}} \cup K^{\text{date}} \cup K^{\text{double}} \cup K^{\text{enum}} \cup K^{\text{string}} \), we define the property function \(\mathrm p_N \colon N \times K \to W\) by specialization into property-type-specific functions:
+\[
+\mathrm p_N(v, k) = \begin{cases}
+    \mathrm p_N^\text{int}(v, k) & k \in K^\text{int} \\
+    \mathrm p_N^\text{date}(v, k) & k \in K^\text{date} \\
+    \mathrm p_N^\text{double}(v, k) & k \in K^\text{double} \\
+    \mathrm p_N^\text{enum}(v, k) & k \in K^\text{enum} \\
+    \mathrm p_N^\text{string}(v, k) & k \in K^\text{string} \\ 
+    \epsilon & \text{otherwise}
+\end{cases}
+\]
+where $\mathrm p_N^\text{prop\_type}: K^\textit{prop\_type} \to W$ have obvious definitions.
+\end{definition}
+
+\section{Fixed-size properties}
+\label{sec:fixedsizeprop}
+
+In this section, we first propose a scheme common to all the fixed-size properties, and then provide the implementation details tailored to the specific property type.
+
+
+\subsection{Node type system}
+We begin by highlighting the central challenge that arises when dealing with entities possessing heterogeneous properties:
+
+\problem{Different nodes may have different subsets of properties defined. When representing fixed-size properties, storing null values for undefined node properties can become space-inefficient.}
+
+To address this, we introduce a notion of node types based on the set of fixed-size properties present in each node.
+
+\begin{definition}
+The type of a node \( n \in V \) is defined as
+\[
+\mathrm {Type}(v) = \left\{ k \in K \setminus K^{\text{string}} \; \middle| \; \mathrm p_V(v, k) \ne \epsilon \right\}
+\]
+\end{definition}
+Clearly, $\mathrm{Type}(v)$ can also be represented as a binary vector $\mathcal B$ of size $\#(K \setminus K^\text{string})$ such that $\mathcal{B}[i] = 1 \iff K_i \in \mathrm Type(v)$.
+
+\begin{definition}
+Let $T$ be the set of all types assigned to nodes in V (i.e., 
+$T = \left\{ \mathrm{Type}(v) \mid v \in V \right\}$) and $t$ its cardinality. We then define the function
+\[
+\mathrm{TypeID} : T \rightarrow \{0, 1, \dots, t - 1\}
+\]
+as an injective function assigning a unique integer identifier to each distinct type.
+\end{definition}
+This formulation allows nodes to reference their type compactly via a \emph{type ID}, avoiding repeated storage of property schemas.
+
+Finally, we observe the following fact that will be used when designing the compression scheme for fixed-size properties.
+
+\fact{Empirical evidence shows that in real-world LPGs, the number of distinct node types is typically small and remains stable even as the graph size increases.}
+
+\subsection{Property storage layout}
+
+Building upon the node type system described above, we now detail the structures used to store fixed-size properties efficiently. The core idea is to group nodes by their assigned type ID and store each group's property data contiguously.
+
+First, we identify the set of distinct node types, each represented as a bit-vector. Suppose we have identified \( t \) distinct node types. We store these type bit-vectors in an array \(\mathcal Types\), where each bit-vector \(\mathcal Types[i]\) encodes the set of properties defined for nodes of type ID \( i \). Thus, the space needed for all type bit-vectors is \( t \times \#(K \setminus K^{\text{string}}) \) bits.
+
+Next, we assign a unique type identifier to each node. We store these type identifiers in a single bit-packed array \(\mathcal NodeTypeId \), whose length equals the number \( n \) of nodes. Since each identifier ranges from \( 0 \) to \( t - 1 \), this requires exactly \( n \lceil \log_2 t \rceil \) bits.
+
+To efficiently locate properties of nodes belonging to a given type, we construct \( t \) additional bit-vectors called \(\mathcal NodeOfType [t]\). Each bit-vector is defined as:
+\[
+\forall v \in V,\quad \mathcal NodeOfType[t][v] = 1 \iff \mathcal NodeTypeId[v] = t
+\]
+and equipped with rank support. \footnote{Note the following observations: i) We could represent $\mathcal NodeTypeId$ using a Wavelet Tree\cite[Section~6.2]{CompactDS}, thus eliminating the need for separate $\mathcal NodeOfType$ bit-vectors. However, when the number of node types is relatively small, explicitly storing these bit-vectors remains more space-efficient despite their redundancy. ii) When dealing with very few node types, it can be preferable to forego storing $\mathcal NodeTypeId$ altogether and rely exclusively on the $\mathcal NodeOfType$ bit-vectors.}
+
+This representation lets us store property data of nodes sharing the same type in contiguous memory. Specifically, given a node \( v \) of type \( t \) (i.e., \(\mathcal NodeTypeId [v] = t\)), we obtain the position of \( v \) among all nodes of type \( t \) by:
+\[
+\mathrm{NodeOffset}(v) = \text{rank}_{\mathcal NodeOfType}[t] (v)
+\]
+
+Finally, we store properties separately by type ID \( t \). For each fixed-size property type \(prop\_type \in \{\text{int}, \text{date}, \text{double}, \text{enum}\}\), we maintain a distinct property matrix \(\mathcal Properties^{\textit{prop\_type}}[t]\). Each matrix has as many rows as there are defined properties of \(prop\_type\) for nodes of type \( t \), and each row contains the corresponding property values for every node of type \( t \).
+
+Since all properties are indexed according to the global ordering previously defined, the specific index assigned to property \( k_i \in K^{prop\_type} \) within nodes of type \( t \) is computed as:
+\[
+\begin{aligned}
+\mathrm{PropertyIndex}(k_i \in K^{\textit{prop\_type}})
+= \; & \text{rank}_{\mathcal Types[t]}(i) \\
+     - & \text{rank}_{\mathcal Types[t]}\left( \min \{ j \mid k_j \in K^{\text{prop\_type}} \} \right).
+\end{aligned}
+\]
+
+
+
+Putting all the pieces together, the encoded value of the property \( k_i \in K^{prop\_type} \) for node \( v \) is found at:
+\[
+    w = \mathcal Properties^{\textit{prop\_type}}[t][\mathrm{PropertyIndex}(k_i)][\mathrm{NodeOffset}(v)]
+\]
+with \( t = \mathcal NodeTypeId [v] \). The actual property value is then obtained by applying the decoding function specific to the property's type:
+\[
+\mathrm p_V^{prop\_type}(v, k_i) =
+\begin{cases}
+\mathrm{decode}^{t, k_i, \mathit{prop\_type}}(w) & \mathcal Types [t][i] = 1 \\
+\epsilon & \text{otherwise}
+\end{cases}.
+\]
+
+
+\subsection{Integers and dates}
+Thanks to the proposed layout, we have the guarantee that nodes with the same properties have consecutive IDs. Storing such properties is now straightforward. We are just left with coming up with a compression scheme tailored for each property type.
+
+Unfortunately, the assumption that we can do over the values assumed by the nodes of the same type is minimal. For instance, we cannot assume any existing ordering on property values given by the node IDs, so we cannot use any compression techniques specific for sorted sequences.
+
+
+For the integer case, we can still hope the values assumed by properties rarely cover the whole range given by standard int (i.e., either $[-2^{31}, 2^{31} - 1]$ or $[-2^{63}, 2^{63} - 1]$).
+
+For each integer property (and for each type), we can store its minimum, and we express the other values as differences from it. In this way, we obtain a non-negative integer sequence that can be compressed through bit-packing. Clearly, the more compact the interval of possible values, the more effective this compression is.
+
+Therefore, we define $\mathrm{decode}^{int}$ as follows
+\begin{equation*}
+    \mathrm{decode}^{int}(t, k_i, w) = \min (t, k_i) + w
+\end{equation*}
+where $\min(t, k_i)$ is the minimum assumed by nodes of type $t$ by the property $k_i$.
+
+We can easily generalize such a method to date properties (i.e., properties with values in the form (day, month, year)). The key idea is to map each date to a compact integer representation, so that we can once again apply the same difference-based encoding used for standard integers. We propose two techniques to perform such mapping.
+
+The first technique relies on counting the number of days elapsed since a fixed reference date (e.g., January 1st, 1900). Each date can thus be uniquely represented by the number of days since this epoch. After selecting a fixed and reasonably recent epoch and a valid maximum date (e.g., December 31st, 2100), we can ensure the resulting range of integers covers only actual calendar dates and remains relatively small—around 73,000 values for the 1900–2100 interval, therefore using 17 bits for each date value.
+
+Alternatively, we can encode dates using a simple multiplier-based scheme. For instance, a date $(d, m, y)$ can be mapped to an integer using an expression like:
+\begin{align*}
+\mathrm{date\_int}(m, d, y) ={} & (y - \mathrm{YEAR\_OFFSET}) \times \mathrm{YEAR\_MULT} \\
+     & + m \times \mathrm{MONTH\_MULT} \\
+     & + d
+\end{align*}
+where the constants \(\mathrm{YEAR\_OFFSET}\), \(\mathrm{YEAR\_MULT}\), and \(\mathrm{MONTH\_MULT}\) are tuned so that the encoding remains compact and the separation between components avoids overlaps (e.g., \(\mathrm{YEAR\_MULT} = 450\), \(\mathrm{MONTH\_MULT} = 35\)).
+
+Both approaches yield integer representations that can be handled with the same difference-encoding and bit-packing pipeline described above for integer properties. The choice between the two primarily depends on correctness requirements, allowed date ranges, and implementation constraints.
+
+\subsection{Enums and labels encoding}
+Enum properties refer to attributes of various types (e.g., integer, string, date, or double) where the set of distinct values across nodes of the same type is significantly smaller than the total number of nodes. This offers us the chance to store such values in order to assign them an index so that we can refer to them through their index.
+
+We denote by $\mathcal{V}(t, p)$ the array that contains all the unique values assumed by nodes of type $t$ for property $k_i$. Thus, the length of $\mathcal{V}(t, k_i)$ corresponds to the number of distinct values for that property among those nodes.
+
+Next, instead of storing each node's actual property value, we encode it using the index of the corresponding value in $\mathcal{V}(t, k_i)$. These indices are stored in a contiguous bit-packed array, using the minimum number of bits necessary to represent all possible indices.
+
+This compact representation significantly reduces memory usage while enabling fast access to the actual property values via $\mathrm{decode}^{enum}$, which is defined as follows
+\[
+\mathrm{decode}^{enum}(t, k_i, w) = \mathcal V (t, k_i)[w].
+\]
+
+Given that labels usually identify a class of nodes in the dataset, and therefore the number of their unique values is a small fraction of the number of nodes, it is natural to think of them as enum properties. We can therefore implement $l_V$ in terms of $p_V$ or use a stand-alone logic replicating the design just proposed.
+
+
+\section{Variable-size Properties}
+
+Properties of variable size, primarily strings, require a distinct storage strategy compared to their fixed-size counterparts. The inherent variability in the length of string data makes fixed-width allocation schemes space-inefficient. To address this, we adopt an approach centered around the concatenation of all string property data into a unified indexed structure.
+
+Although this design is primarily intended for storing string properties, it can also be used for fixed-size properties to achieve higher compression ratios\footnote{Indeed, the authors of CGraphIndex proposed a similar approach and employed it for most graph properties, regardless of their type.}. This, however, comes at the cost of slower access speed.
+
+The core idea is to serialize all variable-size properties associated with nodes into a single, comprehensive text string, denoted by $\mathcal{T}$. This string is constructed using two distinct delimiters $\xi_0, \xi_1$, $\xi_2$, and $\xi_3$. These delimiters are chosen such that they do not appear in the alphabet from which property names and values are drawn. After its construction, the string $\mathcal{T}$ is compressed using its FM-index representation, a technique also employed in Section~\ref{sec:FMIdxMapping}.
+
+We define four delimiter-based markers to structure \(\mathcal{T}\):
+\begin{align*}
+    \mathrm{NodeStart}(v) &= \xi_0 \cdot v \\
+    \mathrm{NodeEnd}(v) &= \xi_1 \cdot v \\
+    \mathrm{PropertyStart}(v, key) &= \xi_2 \cdot v \cdot \xi_2 \cdot key \cdot \xi_2 \\
+    \mathrm{PropertyEnd}(v, key) &= \xi_3 \cdot v \cdot \xi_3 \cdot key \cdot \xi_3
+\end{align*}
+
+Let then \(K^{var}(v)\) denote the sequence of all variable-size property key-value pairs for a given node \(v\). Suppose the variable-size properties for node \(v\) are given by \(K^{var}(v) = [(key_1, val_1), (key_2, val_2), \dots, (key_k, val_k)]\). We then append the following substring to \(\mathcal{T}\):
+\begin{align*}
+& \mathrm{NodeStart}(v) \cdot \\
+& \quad \mathrm{PropertyStart}(v, key_1) \cdot val_1 \cdot \mathrm{PropertyEnd}(v, key_1) \cdot \\
+& \quad \hspace{4cm} \vdots \\
+& \quad \mathrm{PropertyStart}(v, key_k) \cdot val_k \cdot \mathrm{PropertyEnd}(v, key_k) \cdot \\
+& \mathrm{NodeEnd}(v).
+\end{align*}
+Thus, the full string \(\mathcal{T}\) is simply the concatenation of these structured substrings for all nodes that possess variable-size properties.
+
+The patterns \(\mathrm{NodeStart}(v)\) and \(\mathrm{NodeEnd}(v)\) allow quick identification of the substring containing all properties of node \(v\). Using the FM-index operation \(\mathrm{locate}_{\mathcal T}\) with these delimiters, we obtain the position range corresponding to node \(v\) and then extract the relevant property data with \(\mathrm{extract}_{\mathcal T}\). Similarly, we can directly find the boundaries of a specific property by searching for \(\mathrm{PropertyStart}(v,key)\) and \(\mathrm{PropertyEnd}(v,key)\), allowing efficient retrieval of any individual variable-size property value via the same methodology.
+
+Depending on the average length of property values, the frequent inclusion of \(\mathrm{PropertyStart}\) and \(\mathrm{PropertyEnd}\) markers may introduce significant overhead. Thus, for datasets dominated by shorter property values, omitting these property-boundary markers entirely at construction time can be more space-efficient. However, when property values are typically long, explicit property delimiters significantly speed up single-property retrieval by providing precise positional boundaries in the \(\mathrm{extract}_{\mathcal T}\) operation.

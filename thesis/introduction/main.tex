@@ -1,0 +1,210 @@
+\chapter{Introduction}
+\label{chap:introduction}
+
+% 1. What are GDBs
+Graph Databases (GDBs) are specialized data stores designed to represent information as a network of nodes (entities) and edges (relationships), closely mirroring the complex, interconnected structures found in domains such as social media, recommendation systems, and biological data \cite{gdbmodels}. 
+
+While a graph refers generically to any structure comprising entities and their connecting labeled/typed relationships, a Knowledge Graph (KG) specifically integrates semantic context by modeling entities, their attributes, and their interrelations according to a clearly defined schema or ontology \cite{ontology}. In this way, KGs represent not just the connectivity between data items, but structured factual knowledge that can be systematically queried, traversed, and reasoned over. GDBs naturally lend themselves as the ideal technological framework for implementing and managing knowledge graphs due to their inherent structural alignment.
+
+% 3. Why using GDBs over RDBMS
+This inherent structure enables efficient traversal through direct connections, possibly driven by their labels, in contrast to relational databases, which rely on computationally expensive join operations to establish relationships.
+
+% Interests towards KG
+The longstanding interest in KGs, particularly in search engines \cite{GoogleKG}, has grown significantly with their increasing role in Retrieval-Augmented Generation (RAG) systems \cite{rag}. In these applications, Knowledge Graphs enhance Large Language Models (LLMs) by supplying context-rich, structured information, ultimately improving the relevance and accuracy of generated responses.
+
+\section{Labeled Property Graphs}
+
+We start by presenting the core concept of Labeled Property Graphs. A Labeled Property Graph (LPG) is a data structure used to represent the knowledge about a certain domain. It can be seen as a directed graph where each node and edge can have properties and labels assigned. A property is a $(\mathit{key}, \mathit{value})$ pair that provides more information about the node or edge that is assigned, while a label $l$ is a marker that is typically used to indicate the type, role, or classification that a node or edge has in the graph. While vertices and edges can be associated with any number of properties, typically, they have exactly one label assigned.
+    
+\begin{definition}\label{def:lpg}
+    Formally, we define a Labeled Property Graph $G$ as
+    \[
+        G = (V, E, L, \mathrm{l}_V, \mathrm{l}_E, K, W, \mathrm{p}_V, \mathrm{p}_E).
+    \]
+    where
+    \begin{itemize}
+        \item $V$ and $E$ contain respectively the $n$ vertices and $m$ edges of the graph. $E$ is defined as a multi-set, as we want to model cases with multiple edges between two nodes (for example, with different labels or properties assigned).
+        \item $L$ is a finite set of labels, used to annotate both nodes and edges
+        \item $\mathrm{l}_V: V \to L \cup \{\epsilon\}$ and $\mathrm{l}_E: E \to L \cup \{\epsilon\}$ are the functions that return the label assigned to a vertex or edge (if it has one, $\epsilon$ otherwise)
+        \item $K$ is a finite set of keys used in key-value property pairs.
+        \item $W$ is a (possibly infinite) set of literal values that can be assigned to those keys (e.g., strings, numbers, booleans).
+        \item $\mathrm{p}_V: V \times K \to W \cup \{ \epsilon \}$ and $\mathrm{p}_E: E \times K \to W \cup \{\epsilon\}$ are the functions that retrieve the property value associated with a given key for respectively a vertex or an edge, returning $\epsilon$ if the key is absent.
+    \end{itemize}
+\end{definition}
+
+
+
+\begin{example}[Academic Relationship Graph]
+\sloppy
+    The example in Figure~\ref{fig:acadamic_graph_example} illustrates a Labeled Property Graph $G$ representing interactions within a university. It models students, professors, and the university, along with their roles and affiliations.
+
+    Let
+    \[
+        G = (V, E, L, \mathrm{l}_V, \mathrm{l}_E, K, W, \mathrm{p}_V, \mathrm{p}_E).
+    \]
+
+    The set of nodes $V$ includes:
+    \begin{itemize}
+        \item \emph{Alan Turing} ($v_1 \in V$), with label \texttt{"Student"} and properties such that \( p_V(v_1, \texttt{"name"}) = \texttt{"Alan"} \), \( p_V(v_1, \texttt{"surname"}) = \texttt{"Turing"} \), and \( p_V(v_1, \texttt{"age"}) = 25 \).
+        \item \emph{Alonzo Churchill} ($v_2 \in V$), with label \texttt{"Professor"} and properties such that \( p_V(v_2, \texttt{"name"}) = \texttt{"Alonzo"} \), \( p_V(v_2, \texttt{"surname"}) = \texttt{"Churchill"} \), and \( p_V(v_2, \texttt{"age"}) = 34 \).
+        \item \emph{Princeton University} ($v_3 \in V$), with label \texttt{"University"} and property such that \( p_V(v_3, \texttt{"name"}) = \texttt{"Princeton University"} \).
+    \end{itemize}
+
+    The edges $E$ describe the relationships:
+    \begin{itemize}
+        \item An edge $e_1 = (v_1, v_3) \in E$ with label \texttt{"STUDIES\_AT"} and \( p_E(e_1, \texttt{"since"}) = 1936 \).
+        \item An edge $e_2 = (v_2, v_3) \in E$ with label \texttt{"WORKS\_AT"} and \( p_E(e_2, \texttt{"since"}) = 1932\).
+        \item An edge $e_3 = (v_2, v_1) \in E$ with label \texttt{"SUPERVISES"}.
+    \end{itemize}
+
+    The definitions of $L$, $l_V$, $l_E$, $K$, $W$, $p_V$, and $p_E$ are provided by context.
+
+    \begin{figure}[h]
+    \centering
+    \resizebox{\textwidth}{!}{ % Resize to fit page width
+    \input{introduction/example}
+    }
+    \caption{A simple example of an academic LPG. Node Properties and edges are displayed under the node/edge label.\label{fig:acadamic_graph_example}}
+    \end{figure}
+\end{example}
+\par\fussy
+
+
+
+\section{Graph Databases}
+
+
+Graph databases (GDBs) have emerged as essential tools for managing large, dynamic, and richly attributed datasets. Although they are all designed to operate with graph-like data, GDBs differ in the features they offer and implementation details.
+
+Besta et al. \cite{gdb-eth} presented a comprehensive taxonomy that differentiates state-of-the-art systems based on several interrelated dimensions. The first distinction lies in the underlying data models. GDBs are first divided into \emph{Native Graph Databases} and \emph{Key-value/Document stores}. Native Graph Databases use a graph data model as their underlying schema, representing the relationships between the data explicitly, while the latter, such as ArangoDB \footnote{\url{https://arangodb.com/}}, are more general NoSQL data stores where data is stored as a collection of key–value pairs. Most of the Native Graph Databases, such as Neo4j, use some variants of the LPG model. On the other hand, other Native Graph Databases such as Amazon Neptune \footnote{\url{https://aws.amazon.com/it/neptune/}} rely on the Resource Description Framework (RDF) model \cite{rdf}, storing the data in terms of \emph{subject-predicate-object} triples. Subjects typically refer to resource identifiers, while an object can be a simple value or a resource identifier. 
+
+The design of a Graph Database architecture inevitably influences the performance when serving different types of requests. We distinguish between Online Transactional Processing (OLTP) and Online Analytical Processing (OLAP) requests. The first involves the processing of small and close portions of the graph, for example, through property lookups or neighbor queries. The latter are more complex queries that span large regions of the graphs and may involve computing the PageRank \cite{pagerank} of the nodes, computing shortest paths between a given pair of nodes, or visiting the graph through a Breadth-First search (BFS).
+
+\subsection{Neo4j}
+
+Neo4j is a prominent native graph database management system, purpose-built for efficiently storing, querying, and processing graph data.\footnote{Neo4j documentation: \url{https://neo4j.com/docs/getting-started/graph-database/}} It adopts the Labeled Property Graph (LPG) model, as previously defined (Definition~\ref{def:lpg}), where both nodes and edges (relationships) can carry multiple labels and a set of key-value properties.
+
+As one of the most widely adopted and mature graph databases\footnote{GDB popularity ranking: \url{https://db-engines.com/en/ranking/graph+dbms}}, Neo4j benefits from a large community, industry support, and enterprise-level deployment. It employs Cypher\footnote{Cypher language overview: \url{https://neo4j.com/docs/getting-started/cypher/}} as its declarative query language, designed to facilitate expressive graph pattern matching and traversal.
+
+Under the hood, Neo4j uses a native graph storage engine, leveraging index-free adjacency to optimize relationship traversal independent of the overall graph size.\footnote{See Neo4j's native graph architecture: \url{https://neo4j.com/docs/getting-started/cypher/}} Additionally, Neo4j ensures full ACID compliance for transactional consistency and reliability.\footnote{Transaction handling in Neo4j: \url{https://neo4j.com/docs/query-api/current/transactions/}}
+
+\subsection{ArangoDB}
+
+ArangoDB\footnote{ArangoDB's site: \url{https://arangodb.com/}} represents a native multi-model database that integrates graph, document, and key/value data models within a single engine and query language. It stores graph data by representing vertices and edges as JSON documents within distinct collections. Edges make use of special \texttt{\_from} and \texttt{\_to} attributes to reference vertex documents, and efficient traversals are enabled through persistent indexing mechanisms.
+
+The database features AQL (ArangoDB Query Language), which is particularly notable for allowing complex operations (including joins, filters, and traversals) across all supported data models in a single query.\footnote{AQL reference for graph traversals: \url{https://docs.arangodb.com/3.12/aql/graphs/traversals/}} This flexibility is central to ArangoDB's value proposition, as it simplifies application development and data management for systems requiring diverse data representations, while also supporting horizontal scaling and distributed deployment.\footnote{See ArangoDB's model flexibility: \url{https://arangodb.com/model-flexibility/}}
+
+\section{Interacting with Graph Databases}
+Although different graph databases notoriously come with different query languages, since 2019, there has been an effort to standardize a query language specifically designed for Knowledge Graphs. This effort led to the publication of ISO/IEC 39075:2024 in April 2024 \cite{ISO}, which defines the Graph Query Language (GQL) standard. As a result, most database manufacturers are now committed to making their proprietary languages GQL-compliant.
+
+GQL inherited most of its features and syntax from Cypher \cite{cypher}, the query language used by Neo4j, and it is defined in terms of five primitive statements:
+\begin{itemize}
+    \item \verb|MATCH|, which is the core operator of GQL, as it allows one to look for specific patterns [see Section \ref{sec:graph-patterns}] in the graph.
+    \item \verb|FILTER|, which has to be used after a \verb|MATCH| clause and plays the same role as \verb|WHERE| in SQL. In fact, the results are filtered according to some specified criteria before being included in the output table. These criteria consist of conditions that use the alias defined in the \verb|MATCH| clause and might leverage built-in functions  (e.g.,  \verb|count|, \verb|max|)
+    \item \verb|LET|, which allows us to bind the result of subqueries to variables.
+    \item \verb|FOR|, which iterates over elements, such as nodes or edges, within a graph. It typically specifies a traversal or a looping construct, allowing operations to be performed on each element that matches the query criteria.
+    \item \verb|ORDER BY| and \verb|LIMIT|.
+\end{itemize}   
+GQL also defines a standard for create, update, and remove operations and transactions, but we will not provide details about them as they are not relevant to the scope of this thesis.
+
+
+\subsection{Graph patterns}
+\label{sec:graph-patterns}
+
+\subsubsection{Node and edge patterns}
+Both node and edge patterns look for nodes and edges that have a specific label assigned or given specific $(key, value)$ property pairs. We use round and square brackets to respectively indicate a vertex or an edge, semicolons to indicate the name of the labels, while filters on properties are within curly brackets. We can also assign an alias to refer to the matched node or edge elsewhere in the query.
+
+Finally, edge patterns have various syntactic elements to indicate the desired direction. For instance, we use:
+
+\begin{itemize}
+    \item \verb|-[edge_alias :EdgeLabel {property=value}]->| for right-pointing directed edges
+    \item $\sim$\verb|[edge_alias :EdgeLabel {property=value}]|$\sim$ for undirected edges
+    \item $\sim$\verb|[edge_alias :EdgeLabel {property=value}]|$\sim$\verb|>| for undirected edges or directed edges pointing right
+    \item \verb|<-[edge_alias :EdgeLabel {property=value}]->| for any directed edge
+    \item \verb|-[edge_alias :EdgeLabel {property=value}]-| for any edge.
+\end{itemize}
+
+
+\subsubsection{Path patterns}
+Path patterns are more complicated and are defined recursively in terms of node and edge patterns, using the following operations:
+
+\begin{itemize}
+    \item \emph{Concatenation}. Node and edge patterns are combined to form path pattern expressions through concatenation (without any operation sign). These expressions are constructed by alternating node patterns with edge patterns. GQL also addresses the case of consecutive patterns of the same type: consecutive node patterns refer to the same node, whereas consecutive edge patterns imply an implicit node pattern between them.
+
+    For example, the following pattern looks for the customer who purchased a product from a specific store
+    \begin{verbatim}
+        (c:Customer) 
+        -[:PURCHASED] ->
+        -[:SOLD_BY]->
+        (:Store {name="TechShop"})
+    \end{verbatim}
+    
+    \item \emph{Grouping} allows you to define a pattern using other subpath patterns, putting such subpatterns within curly brackets. It also gives the option to assign aliases or constraints to these subpatterns.
+
+    \item \emph{Alternation} allows you to define patterns that can match multiple alternative paths, providing flexibility in pattern matching. This is accomplished by specifying different subpaths that the pattern can follow. Alternation is achieved using the operators \verb!|! and \verb!|+|!, which differ in their semantics: \verb!|! employs set semantics, treating matching paths as unique and ignoring duplicates, while \verb!|+|! uses multiset semantics, where duplicates are considered significant.
+    \begin{verbatim}
+        (u1:User)  
+        { -[r:LIKES]-> | -[r:FOLLOWS]-> } 
+        (u2:User)
+    \end{verbatim}
+    
+    \item \emph{Quantification}. More complex path patterns can be expressed using quantification, which allows us to express variable-length patterns by specifying the minimum and maximum times that an edge or subpath pattern must be matched.
+    \begin{verbatim}
+        (origin :Airport) 
+        -[:FLIGHT]{1,3} -> 
+        (destination :Airport)
+    \end{verbatim}
+
+    \item \emph{Optionality}. The \verb|?| operator placed after an edge or subpath pattern marks such subpattern as optional within the parent pattern.
+
+\end{itemize}
+
+When dealing with variable-length paths and graphs that have loops, quantification might lead to an infinite number of paths that all satisfy the given pattern. For this reason, GQL uses selectors and restrictors to specify which paths have to be returned.
+
+Selectors are optional and specify which of the selected paths should be returned. Examples of selectors are \verb|ALL|, \verb|ANY SHORTEST|, and \verb|ALL SHORTEST|. Selectors whose names begin with "ANY" are to be considered non-deterministic.
+
+On the other hand, restrictors are the tools used to avoid selecting an infinite number of paths. The default restrictor is \verb|WALK| that does not put any constraint on the paths that can be selected. We then have \verb|TRAIL| to select paths without repeated edges, \verb|ACYCLIC|  to only select paths without repeated nodes, and \verb | SIMPLE|, which returns all the paths without repeated nodes except for the first and last node that can be the same.
+
+
+
+
+\section{Modelling static graphs}
+
+To the extent of this thesis, we are interested in modelling static graphs, namely graphs whose structure changes very rarely and hence can be considered read-only. Although this assumption might sound limiting, these graphs are very common in Business Intelligence applications where we are mainly interested in running OLAP queries. Given the computational intensity of these queries, which often involve navigating sparse regions of the graph, we can leverage the static nature of the data to construct specialized indexing structures. These indexes, while highly effective for read-heavy workloads, would be impractical in dynamic environments where frequent updates are expected. Furthermore, in these static scenarios, the underlying data's infrequency of change allows for the complete reconstruction of graph data structures from scratch. In the following, we will aim for data structures whose reconstruction scales well in time and space, thus making this one-time cost negligible and, in turn, enabling their optimization for the specific query patterns anticipated.
+
+Another instance where the represented data can be assumed to be static is the comprehensive collection of laws within a legislative system, which remains clearly unchanged until new laws are enacted. In this context, Colombo et al. \cite{colombo} recently demonstrated that its representation through Graph databases effectively captures the hierarchical structure and inter-dependencies of laws, thereby uncovering significant patterns and insights within the legislative corpus.
+
+{Furthermore, leveraging graph structures is not limited exclusively to data that is natively stored or primarily modeled as a graph. Specialized graph representations can be constructed on-the-fly through occasional preprocessing steps, even when data resides within relational or columnar databases. For example, expensive join-based queries can be effectively transformed into graph traversals, often leading to substantial performance improvements. Such cases strongly benefit from our assumption of a static dataset.
+
+
+\section{Our contribution}
+In this thesis, we propose and evaluate \emph{computational-friendly} compression techniques designed for static and slightly dynamic LPGs. Our methods achieve significant reductions in storage requirements without penalizing query performance, enabling the efficient implementation of expressive, standards-compliant graph query engines. Specifically, our core contributions include:}
+
+\begin{enumerate}
+    \item We introduce a novel approach for efficiently compressing graph connectivity information. This approach supports fast encoding, decoding, and traversal operations while effectively compressing both sparse and dense graphs. Experimental evaluation demonstrates that our method often achieves better compression ratios and competitive lookup performance compared to other compressed graph representations.
+
+
+    \item We propose encoding schemes optimized for efficient storage of fixed- or variable-length properties of nodes and edges. By leveraging type-aware compression methods, we significantly reduce the storage overhead of commercial GDBs with minimal computational cost, thus maintaining high property retrieval performance.
+    
+    \item We provide an extensive experimental comparison against widely used commercial GDBs, as well as (unlabeled) compressed graphs. Our results showcase substantial space occupancy reductions across a diverse selection of real-world heterogeneous datasets while maintaining competitive query times. For example, we achieve up to 98\% (relative) improvement in space occupancy compared to commercial GDBs, and 27\% (relative) improvement compared to (unlabeled) graph compressors, while still providing comparable - and sometimes even superior - query performance.
+\end{enumerate}
+
+This computation-friendly, lightweight compression design ensures full GQL compliance, allowing "core" query operations to efficiently execute directly on the compressed representation, thus setting the stage for future development of expressive, compliant, and high-performance GQL-enabled query engines.
+
+
+These contributions were developed within the scope of a collaborative project involving Sadas\footnote{\url{https://www.sadas.com/}} and its Graph DBs, in a partnership that transitioned from the University of Pisa to the Sant'Anna School of Advanced Studies, showing additionally its industrial relevance.
+
+\section{Thesis outline}
+
+This thesis is organized as follows. In Chapter~2, we review the fundamental concepts and data structures that underpin our approach, including graph relabelling, compact representations, and succinct index structures. We also survey related work on graph compression techniques, highlighting both classical and recent methods relevant to static graph workloads.
+
+Chapter~3 introduces the datasets used to evaluate our system. We describe six diverse graph collections—ranging from biological and patent citation networks to academic and e-commerce graphs—detailing their size, schema, and structural properties. This heterogeneous corpus enables us to test scalability, compression ratio, and query performance across multiple domains.
+
+In Chapter~4, we present our method for representing the graph topology. We formalize the problem of mapping arbitrary user node identifiers to a compact range, and propose two space-efficient mappings based on permutation encodings and FM-Index structures. We then propose a novel approach to compress arbitrary integer sequences and describe how to apply this technique to compress edge adjacency lists after appropriately relabelling graph nodes to take full advantage of this compression scheme.
+
+Chapter~5 covers the representation of node and edge properties. We classify properties into fixed-size types (integers, dates, doubles, enums) and variable-size strings, introduce a node type system to avoid storing sparse nulls, and detail the layout and compression of each property class. Our design balances rapid lookups with overall space reduction.
+
+Chapter~6 reports on benchmarks and experimental evaluation. We measure compression ratios, build times, and query latencies (e.g., neighbor and property retrievals) on each dataset, comparing against state-of-the-art systems. Results demonstrate that our techniques achieve competitive or superior space-time trade-offs for large static graphs.
+
+Finally, Chapter~7 summarizes our contributions and highlights future research directions.
+

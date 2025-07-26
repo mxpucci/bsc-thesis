@@ -1,0 +1,63 @@
+\begin{tikzpicture}[
+  node/.style={
+    rectangle, draw=black, rounded corners=8pt, fill=blue!5,
+    minimum width=4cm, minimum height=2cm, align=left, font=\small, drop shadow
+  },
+  edge/.style={
+    ->, >=stealth, thick, color=black!70
+  },
+  property/.style={
+    rectangle, draw=black!50, dashed, rounded corners=6pt, fill=gray!10,
+    inner sep=2pt, minimum width=2.8cm, align=center, font=\scriptsize
+  },
+  every shadow/.style={
+    shadow xshift=0.8pt,
+    shadow yshift=-0.8pt
+  }
+]
+
+% Nodes
+\node[node] (turing) {
+  \textbf{Alan Turing} \\[2pt]
+  \textit{Student} \\[2pt]
+  name = "Alan" \\ 
+  surname = "Turing" \\
+  age = 25
+};
+\node[node, below left=3.2cm and 3cm of turing] (churchill) {
+  \textbf{Alonzo Churchill} \\[2pt]
+  \textit{Professor} \\[2pt]
+  name = "Alonzo" \\ 
+  surname = "Churchill" \\
+  age = 34
+};
+\node[node, below right=3.2cm and 3cm of turing] (princeton) {
+  \textbf{Princeton University} \\[2pt]
+  \textit{University} \\[2pt]
+  name = "Princeton University"
+};
+
+% Edge Properties
+\node[property, above=0.4cm of $(turing)!0.5!(princeton)$] (studies) {
+  \textit{STUDIES\_AT} \\ 
+  since = 1936
+};
+\node[property, above=0.4cm of $(churchill)!0.5!(princeton)$] (works) {
+  \textit{WORKS\_AT} \\ 
+  since = 1932
+};
+\node[property, left=0.4cm of $(churchill)!0.5!(turing)$] (supervises) {
+  \textit{SUPERVISES}
+};
+
+% Edges
+\draw[edge] (turing) to[out=10,in=170] (studies.west);
+\draw[edge] (studies.east) to[out=10,in=170] (princeton);
+
+\draw[edge] (churchill) to[out=10,in=170] (works.west);
+\draw[edge] (works.east) to[out=10,in=170] (princeton);
+
+\draw[edge] (churchill) to[out=30,in=210] (supervises.south);
+\draw[edge] (supervises.north) to[out=30,in=210] (turing);
+
+\end{tikzpicture}

@@ -1,0 +1,39 @@
+\section{Alba: internal dataset of a Sadas client}
+This dataset is intended solely for internal use; no download link is shared externally. It contains information on individuals, companies, and the relationships between these entities.
+
+The graph comprises 964,000 nodes and 5,000,000 edges, occupying 143 MB on disk when stored in compressed ZIP archive format. When uncompressed, the node file requires 102 MB and the edge file 320 MB.
+
+\subsection*{Node Attributes}
+All attributes are represented as strings unless explicitly stated otherwise.
+\begin{itemize}
+    \item \emph{CD\_NDG}: Unique identifier for nodes.
+    \item \emph{DS\_RAGIONE\_SOCIALE}: Name of the individual or company.
+    \item \emph{DS\_INDIRIZZO\_LEGALE}: Legal address of residence or the company’s registered office.
+    \item \emph{CD\_CAP\_LEGALE}: Postal code (CAP) of the legal residence or the company’s registered office.
+    \item \emph{CD\_PROVINCIA\_LEGALE}: Province of residence or of the company’s registered office.
+    \item \emph{CD\_COMUNE\_LEGALE}: Municipality of residence or the company’s registered office.
+    \item \emph{CD\_REGIONE\_LEGALE}: Region of residence or the company’s registered office.
+    \item \emph{CD\_NAZIONE\_LEGALE}: Country of residence or the company’s registered office.
+    \item \emph{DS\_INDIRIZZO\_AMMIN}: Administrative address of the individual or company.
+    \item \emph{CD\_CAP\_AMMIN}: Postal code (CAP) of the administrative address.
+    \item \emph{CD\_PROVINCIA\_AMMIN}: Province of the administrative address.
+    \item \emph{CD\_COMUNE\_AMMIN}: Municipality of the administrative address.
+    \item \emph{CD\_REGIONE\_AMMIN}: Region of the administrative address.
+    \item \emph{CD\_NAZIONE\_AMMIN}: Country of the administrative address.
+    \item \emph{CD\_ATECO}: ATECO code of the company.
+    \item \emph{CD\_FORMA\_GIURIDICA}: Code specifying the legal form of the company.
+    \item \emph{CD\_NDG\_CAPOGR}: For subsidiary companies, this indicates the ID (CD\_NDG) of the parent company.
+    \item \emph{NR\_RATING\_ANTIRICICLAGGIO}: Anti-money laundering rating provided by a third party. It is an integer that ranges from 0 (clean activity) to 5 (high risk of money laundering).
+    \item \emph{CD\_RATING\_CGS}: Health rating of the company, provided by a third-party entity. It is a floating-point number ranging from 0 (healthy company) to 100 (company in distress).
+\end{itemize}
+
+\subsection*{Edge Attributes}
+All edge attributes are represented as strings unless explicitly stated otherwise.
+\begin{itemize}
+    \item \emph{CD\_NDG}: ID of the source node (referring to the CD\_NDG column in the nodes table).
+    \item \emph{CD\_NDG\_SUB}: ID of the destination node (referring to the CD\_NDG column in the nodes table).
+    \item \emph{CD\_TIPO\_COLLEGAMENTO}: Code indicating the type of relationship present between these two nodes.
+    \item \emph{DS\_TIPO\_COLLEGAMENTO}: Description (as a string) of the type of relationship between the two nodes, as specified by the previously described column.
+    \item \emph{DT\_INIZIO\_VAL}: Start date of the relationship’s validity.
+    \item \emph{DT\_FINE\_VAL}: End date of the relationship’s validity. A placeholder date far in the future is used to indicate that the relationship has no specified termination date.
+\end{itemize}

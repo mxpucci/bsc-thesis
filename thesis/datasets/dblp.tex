@@ -1,0 +1,39 @@
+\section{DBLP: academic citation graph of scientific articles}
+\label{sec:dblp}
+
+The dataset is extracted from DBLP—a comprehensive bibliography of scientific articles in computer science—as well as other sources, including ACM (Association for Computing Machinery) and MAG (Microsoft Academic Graph), among others \cite{dblpsource}. From the various provided versions, we employed the most recent one (dump v14) dated January 31, 2023. This dataset contains nodes representing articles, authors, affiliations, and venues, establishing relationships among them.
+
+The processed dataset is available in two files (nodes.tsv and edges.tsv), which include all the nodes and edges.\footnote{The processed dataset can be downloaded from \url{https://drive.google.com/file/d/1ACqpewlYwdvCpxvWxcBhD7eyCa5WonGu/view?usp=sharing}.}
+Our dataset was derived from dump v14, available at \url{https://www.aminer.cn/citation}.
+
+The graph counts about 15.6M nodes and 35M edges. The nodes.tsv and edges.tsv files, if compressed into a ZIP file, occupy 903 MB. Uncompressed, the nodes and arcs files take 1.5 GB and 1.7 GB, respectively.
+
+\subsection*{Nodes}
+
+Each node in the graph is characterized by the following attributes:
+\begin{itemize}
+    \item \emph{id}: A unique string identifier for the node.
+    \item \emph{type}: The type of the node (i.e., article, author, venue, affiliation).
+    \item \emph{label}: Depending on the node type, it specifies:
+    \begin{itemize}
+        \item For an article: the article title.
+        \item For an author: the author’s full name.
+        \item For an affiliation: the organization’s name.
+        \item For a venue: the name of the conference or journal.
+    \end{itemize}
+    \item \emph{issn}: Applicable only to articles; indicates the ISSN corresponding to the serial publication title.
+    \item \emph{isbn}: Applicable only to articles; provides the 13-digit ISBN for identifying the "book" of the publication.
+    \item \emph{n\_citation}: Applicable only to articles; denotes the number of citations.
+    \item \emph{year}: Applicable to both articles and venues; for articles, it represents the year of publication, while for venues, it indicates the year in which the conference took place.
+    \item \emph{doi}: Applicable only to articles; it offers the URL that uniquely identifies the article.
+    \item \emph{doc\_type}: Applicable only to articles; specifies the type of article (e.g., journal, conference paper).
+\end{itemize}
+
+\subsection*{Edges}
+
+Edges within the graph are described by the following attributes:
+\begin{itemize}
+    \item \emph{source}: The ID of the source node.
+    \item \emph{type}: The nature of the relationship, which depends on the involved node types (e.g., an author \textit{WROTE} an article).
+    \item \emph{target}: The ID of the target node.
+\end{itemize}

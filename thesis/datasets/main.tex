@@ -1,0 +1,32 @@
+\chapter{Datasets}
+\label{chap:datasets-graphs}
+
+In this chapter, we present the research datasets used for testing the GraphDB. For each dataset, we describe the node and edge attributes, report the number of nodes and edges, and provide some basic information and statistics.
+
+\begin{table}[htbp]
+  \centering
+  \caption{Dataset Statistics. Node and edge counts have been rounded for readability. Property counts indicate the number of distinct property keys across all nodes or edges.}
+  % Reduce font size and cell padding
+  \setlength{\tabcolsep}{4pt} % Reduce column separation
+  \renewcommand{\arraystretch}{0.9} % Reduce row height
+  \small % or \footnotesize or \scriptsize
+  \begin{tabular}{lccccc}
+    \toprule
+    Dataset & \# Nodes & \# Edges & Type & \# Node Props & \# Edge Props  \\
+    \midrule
+    amazon  & 1M   & 4M  & Directed   & 10 & 3 \\
+    dblp          & 15M  & 35M & Directed   & 9  & 3 \\
+    mag     & 2M   & 20M & Directed   & 15 & 3 \\
+    patents       & 3M   & 26M & Directed   & 23 & 3 \\
+    prime   & 130k & 4M  & Undirected & 5  & 4 \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\input{datasets/amazon}
+\input{datasets/dblp}
+\input{datasets/mag}
+\input{datasets/patents}
+\input{datasets/prime}
+
+% \input{datasets/alba}
